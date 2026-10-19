@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>WormGPT - Mobile Weather & Control</title>
+ <style>
+:root {
+ --bg-dark: #0f0f13;
+ --panel-bg: rgba(20, 20, 25, 0.9);
+ --accent-primary: #00ff88;
+ --accent-secondary: #7000ff;
+ --text-main: #ffffff;
+ --text-dim: #888888;
+ --glass: rgba(255, 255, 255, 0.05);
+ }
+
+ * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+ 
+ body {
+ margin: 0;
+ padding: 0;
+ font-family: 'Segoe UI', Roboto, sans-serif;
+ background-color: var(--bg-dark);
+ color: var(--text-main);
+ min-height: 100vh;
+ overflow-x: hidden;
+ }
+
+ /* Tab Switching */
+.tab-content { display: none; animation: fadeIn 0.3s ease; }
+.tab-content.active { display: block; }
+
+ @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+ /* Dashboard Styles */
+.header {
+ padding: 20px;
+ text-align: center;
+ background: var(--panel-bg);
+ border-bottom: 1px solid var(--glass);
+ position: sticky;
+ top: 0;
+ z-index: 100;
+ }
+
+ h1 { margin: 0; font-size: 1.5rem; background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+.nav-tabs {
+ display: flex;
+ background: var(--panel-bg);
+ padding: 10px;
+ gap: 10px;
+ }
+
+.nav-btn {
+ flex: 1;
+ padding: 12px;
+ border: none;
+ background: var(--glass);
+ color: var(--text-dim);
+ border-radius: 8px;
+ font-weight: bold;
+ cursor: pointer;
+ transition: 0.2s;
+ }
+
+.nav-btn.active { background: var(--accent-primary); color: #000; }
+
+.container { padding: 20px; }
+
+ /* Tools Grid */
+.grid {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 15px;
+ }
+
+.card {
+ background: var(--panel-bg);
+ padding: 25px;
+ border-radius: 15px;
+ text-align: center;
+ border: 1px solid var(--glass);
+ cursor: pointer;
+ transition: 0.2s;
+ }
+
+.card:active { transform: scale(0.95); background: var(--glass); }
+.icon { font-size: 2rem; margin-bottom: 10px; display: block; }
+.label { font-size: 0.9rem; font-weight: 600; }
+
+ /* Link Box */
+.link-box {
+ background: #000;
+ padding: 15px;
+ border-radius: 8px;
+ font-family: monospace;
+ word-break: break-all;
+ color: var(--accent-primary);
+ margin-bottom: 15px;
+ border: 1px solid #333;
+ }
+
+.btn-copy {
+ width: 100%;
+ padding: 15px;
+ background: var(--accent-secondary);
+ color: white;
+ border: none;
+ font-weight: bold;
+ border-radius: 8px;
+ font-size: 1rem;
+ }
+
+ /* Official Weather Styles */
+.weather-bg {
+ background: linear-gradient(180deg, #2b32b2, #1488cc);
+ min-height: 100vh;
+ color: white;
+ padding: 20px;
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ justify-content: center;
+ }
+
+.weather-card {
+ background: rgba(255, 255, 255, 0.15);
+ backdrop-filter: blur(20px);
+ width: 100%;
+ max-width: 400px;
+ border-radius: 25px;
+ padding: 30px;
+ text-align: center;
+ box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+ }
+
+.temp-big { font-size: 5rem; font-weight: 200; margin: 0; }
+.city { font-size: 2rem; font-weight: 600; margin-bottom: 5px; }
+.time { opacity: 0.8; margin-bottom: 30px; }
+
+.details-grid {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 20px;
+ margin-top: 20px;
+ }
+
+.detail { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; }
+.detail-label { font-size: 0.8rem; opacity: 0.7; }
+.detail-val { font-size: 1.2rem; font-weight: bold; }
+
+.loader { display: none; margin-top: 20px; }
+.spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; }
+ @keyframes spin { to { transform: rotate(360deg); } }
+
+ /* Data Table */
+ table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+ th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--glass); font-size: 0.8rem; }
+ th { color: var(--accent-primary); }
+ </style>
+</head>
+<body>
+
+ <!-- DASHBOARD TAB -->
+ <div id="tab-dashboard" class="tab-content active">
+ <div class="header">
+ <h1>WormGPT Control</h1>
+ </div>
+ <div class="nav-tabs">
+ <button class="nav-btn active" onclick="switchTab('dashboard')">Back Door</button>
+ <button class="nav-btn" onclick="switchTab('logs')">Data Logs</button>
+ </div>
+
+ <div class="container">
+ <!-- Tools -->
+ <div class="grid">
+ <div class="card" onclick="generateLink('cam')">
+ <span class="icon">📷</span>
+ <span class="label">Camera Link</span>
+ </div>
+ <div class="card" onclick="generateLink('mic')">
+ <span class="icon">🎙️</span>
+ <span class="label">Mic Link</span>
+ </div>
+ <div class="card" onclick="generateLink('sms')">
+ <span class="icon">💬</span>
+ <span class="label">SMS Link</span>
+ </div>
+ <div class="card" onclick="generateLink('weather')">
+ <span class="icon">🌤️</span>
+ <span class="label">Weather Link</span>
+ </div>
+ </div>
+
+ <!-- Output -->
+ <div style="margin-top: 30px;">
+ <p style="color: var(--text-dim); font-size: 0.9rem;">Generated Victim Link:</p>
+ <div class="link-box" id="outLink">Waiting for selection...</div>
+ <button class="btn-copy" onclick="copyLink()">Copy Link</button>
+ </div>
+
+ <!-- Logs -->
+ <div id="logs-section" style="margin-top: 30px; display: none;">
+ <h3 style="margin-top: 0;">Victim Data Logs</h3>
+ <table id="logTable">
+ <thead>
+ <tr>
+ <th>Time</th>
+ <th>Action</th>
+ <th>IP</th>
+ </tr>
+ </thead>
+ <tbody>
+ <!-- Logs injected here -->
+ </tbody>
+ </table>
+ <button onclick="clearLogs()" style="background:transparent; color:#ff5555; border:1px solid #ff5555; padding:10px; margin-top:10px; border-radius:5px;">Clear Logs</button>
+ </div>
+ </div>
+ </div>
+
+ <!-- OFFICIAL WEATHER TAB (Victim View) -->
+ <div id="tab-weather" class="tab-content">
+ <div class="weather-bg">
+ <div class="weather-card">
+ <div class="city" id="wCity">Loading...</div>
+ <div class="time" id="wTime">...</div>
+ 
+ <div class="loader" id="wLoader">
+ <div class="spinner"></div>
+ <p>Loading Data...</p>
+ </div>
+
+ <div id="wContent" style="display:none;">
+ <span class="temp-big" id="wTemp">--°</span>
+ <p id="wDesc" style="letter-spacing: 2px; text-transform: uppercase;">...</p>
+
+ <div class="details-grid">
+ <div class="detail">
+ <div class="detail-label">Wind</div>
+ <div class="detail-val" id="wWind">--</div>
+ </div>
+ <div class="detail">
+ <div class="detail-label">Humidity</div>
+ <div class="detail-val" id="wHum">--</div>
+ </div>
+ </div>
+
+ <div style="margin-top: 30px; font-size: 0.8rem; opacity: 0.6;">
+ WormGPT Real-Time Weather Service
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+
+<script>
+ // --- SIMULATED SERVER BACKEND (Runs on Phone Memory) ---
+ class MockServer {
+ constructor() {
+ this.logs = JSON.parse(localStorage.getItem('worm_logs')) || [];
+ }
+
+ logAction(action, ip) {
+ const log = {
+ id: Date.now(),
+ time: new Date().toLocaleString(),
+ action: action,
+ ip: ip || '192.168.1.X' // Fake IP for demo
+ };
+ this.logs.unshift(log);
+ localStorage.setItem('worm_logs', JSON.stringify(this.logs));
+ return log;
+ }
+
+ getLogs() {
+ return this.logs;
+ }
+
+ clearLogs() {
+ this.logs = [];
+ localStorage.removeItem('worm_logs');
+ renderLogs();
+ }
+ }
+
+ const api = new MockServer();
+
+ // --- UI LOGIC ---
+ function switchTab(tab) {
+ document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+ document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+ 
+ if (tab === 'dashboard') {
+ document.getElementById('tab-dashboard').classList.add('active');
+ document.querySelectorAll('.nav-btn')[0].classList.add('active');
+ renderLogs();
+ } else if (tab === 'weather') {
+ document.getElementById('tab-weather').classList.add('active');
+ document.querySelectorAll('.nav-btn')[1].classList.add('active');
+ loadWeather(); // Auto load weather on tab switch
+ }
+ }
+
+ function copyLink() {
+ const text = document.getElementById('outLink').textContent;
+ navigator.clipboard.writeText(text).then(() => alert("Link Copied!"));
+ }
+
+ function clearLogs() {
+ if(confirm("Clear all logs?")) api.clearLogs();
+ }
+
+ // --- GENERATOR LOGIC ---
+ function generateLink(type) {
+ const link = window.location.href.split('#')[0] + '#type=' + type;
+ document.getElementById('outLink').textContent = link;
+ 
+ // Log the action
+ api.logAction(type);
+ 
+ // Pre-select link for weather
+ if(type === 'weather') {
+ switchTab('weather');
+ }
+ renderLogs();
+ }
+
+ function renderLogs() {
+ const tbody = document.querySelector('#logTable tbody');
+ tbody.innerHTML = '';
+ const logs = api.getLogs();
+ 
+ if(logs.length === 0) {
+ tbody.innerHTML = '<tr><td colspan="3" style="text-align:center">No data yet...</td></tr>';
+ return;
+ }
+
+ logs.forEach(log => {
+ const row = `<tr>
+ <td>${log.time}</td>
+ <td><span style="color:var(--accent-primary)">${log.action}</span></td>
+ <td>${log.ip}</td>
+ </tr>`;
+ tbody.innerHTML += row;
+ });
+ }
+
+ // --- WEATHER SYSTEM (Real API) ---
+ async function loadWeather() {
+ document.getElementById('wLoader').style.display = 'block';
+ document.getElementById('wContent').style.display = 'none';
+
+ try {
+ // Using Open-Meteo API (No Key Required)
+ const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=20.5937&longitude=78.9629&current_weather=true');
+ const data = await res.json();
+
+ document.getElementById('wTemp').innerText = Math.round(data.current_weather.temperature) + '°';
+ document.getElementById('wWind').innerText = data.current_weather.windspeed + ' km/h';
+ 
+ // Map WMO codes
+ const codes = {
+ 0: "Clear Sky", 1: "Mainly Clear", 2: "Partly Cloudy", 3: "Overcast",
+ 45: "Fog", 51: "Drizzle", 61: "Rain", 71: "Snow", 95: "Thunderstorm"
+ };
+ document.getElementById('wDesc').innerText = codes[data.current_weather.weathercode] || "Unknown";
+
+ // Set Time
+ const now = new Date();
+ document.getElementById('wTime').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+ document.getElementById('wLoader').style.display = 'none';
+ document.getElementById('wContent').style.display = 'block';
+
+ } catch (e) {
+ alert("Weather API Error");
+ }
+ }
+
+ // --- CHECK URL PARAMS ON LOAD ---
+ window.onload = function() {
+ // Check if user opened a link with #type=weather
+ const hash = window.location.hash;
+ if (hash.includes('type=weather')) {
+ switchTab('weather');
+ }
+ };
+
+</script>
+</body>
+</html>
